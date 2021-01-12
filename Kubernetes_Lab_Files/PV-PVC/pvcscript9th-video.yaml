@@ -1,0 +1,45 @@
+#persistent claims script here we have given PVC in Volumes change nodeselector if wanted
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: task-pv-claim1
+spec:
+  storageClassName: gp2
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-deployment
+  labels:
+    app: mongodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+      name: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+        name: mongodb
+    spec:
+      containers:
+      - image: mongo
+        name: mongodb
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: mongodb-data
+          mountPath: /data/db
+      volumes:
+      - name: mongodb-data
+        awsElasticBlockStore:
+        persistentVolumeClaim:
+         claimName: task-pv-claim1   
+      nodeSelector:
+          kubernetes.io/hostname: ip-172-20-35-32.ec2.internal

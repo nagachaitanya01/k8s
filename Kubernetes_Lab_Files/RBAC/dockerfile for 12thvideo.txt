@@ -1,0 +1,3 @@
+FROM sreeharshav/kubectlpod:v1
+RUN apt update && apt install -y curl wget nginx
+CMD ["nginx", "-g", "daemon off;"]

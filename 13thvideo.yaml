@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+ name: count-quotas
+spec:
+ hard:
+   pods: "2"
+   cpu: "1000m"
+   memory: "1Gi"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: limit-mem-cpu-per-container
+spec:
+  limits:
+  - max:
+      cpu: "500m" #500
+      memory: "1Gi"
+    min:
+      cpu: "100m"
+      memory: "100Mi" #100
+#    default:
+#      cpu: "700m" #200
+#      memory: "900Mi" #200
+#    defaultRequest:
+#      cpu: "110m" #100
+#      memory: "111Mi" #100 
+    type: pod
+---
+apiVersion: v1
+kind: Pod
+metadata:
+ name: couchbase-pod-2
+spec:
+ containers:
+ - name: couchbase
+   image: couchbase
+   ports:
+   - containerPort: 8091
+   resources:
+     limits:
+       cpu: "200m"
+       memory: 256Mi
+---
+######Deployments######
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    run: deploy01
+  name: deploy01
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      run: deploy01
+  template:
+    metadata:
+      labels:
+        run: deploy01
+    spec:
+      containers:
+      - image: nginx:latest
+        name: deploy01
+        resources:
+         limits:
+          cpu: "200m"
+          memory: 256Mi
+		  
+	

@@ -1,0 +1,142 @@
+#kubectl run testpod1 --generator=run-app/v1 --image sreeharshav/utils:v8 -n test
+#kubectl run testpod2 --generator=run-app/v1 --image sreeharshav/utils:v8 -n test
+#kubectl run prodpod1 --generator=run-app/v1 --image sreeharshav/utils:v8 -n prod
+#kubectl run prodpod2 --generator=run-app/v1 --image sreeharshav/utils:v8 -n prod
+#kubectl run defpod1 --generator=run-app/v1 --image sreeharshav/rollingupdate:v5 
+#kubectl run defpod2 --generator=run-app/v1 --image sreeharshav/rollingupdate:v5
+
+#kubectl exec -it testpod1 -n test -- curl http://app1.app1.svc.cluster.local:8000
+#kubectl exec -it prodpod1 -n prod -- curl http://app1.app1.svc.cluster.local:8000
+#kubectl exec -it defpod1 -n default -- curl http://app1.app1.svc.cluster.local:8000
+#kubectl exec -it pod1 -n app1 -- curl http://app1.app1.svc.cluster.local:8000
+#now we applying deny network policy for all INGRESS 
+#by this yaml all the traffic coming in will be blocked
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: app1-deny-all
+  namespace: app1
+spec:
+  podSelector:
+    matchLabels:
+      env: nginx
+  ingress: []
+---
+#for restricting communication b/w the pods in same namespace
+#to work this the at least one pod label should be same check it by
+#kubectl get pods --show-labels -n app1
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: allow-local-ns-pods-only #Make sure the app pod has label access1: local1
+  namespace: app1
+spec:
+  podSelector:
+    matchLabels:
+      count: pod1
+  ingress: 
+    - from:
+      - podSelector:
+          matchLabels:
+            count: pod1
+---
+#to allow connection b/w another namespace so for that we added {namespaceselector}block
+#we have to give labels for ns 
+#Allowing namespace test and pods with label access1: local1 to 
+#communicate with app1 pod in namespace app1
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: allow-from-ns-test
+  namespace: app1
+spec:
+  podSelector:
+    matchLabels:
+      count: pod1
+  ingress: 
+    - from:
+      - namespaceSelector: 
+          matchLabels:
+            env: test
+        podSelector:
+          matchLabels:
+            count: pod1
+---
+#Allowing namespace prod and pods with label count=pod1 to 
+#communicate with app1 pod in namespace app1
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: allow-from-ns-prod
+  namespace: app1
+spec:
+  podSelector:
+    matchLabels:
+      count: pod1
+  ingress: 
+    - from:
+      - namespaceSelector: 
+          matchLabels:
+            env: prod
+        podSelector:
+          matchLabels:
+            count: pod1
+
+#==========================EGRESS===============================
+---
+#Block All Egress
+#it will not work on prod namespace as we given that one in yaml
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: allow-egress 
+  namespace: prod
+spec:
+  podSelector:
+    matchLabels:
+      env: prod
+  policyTypes:
+    - Egress
+  egress: []
+---
+---
+#Allow communication inside namesapce
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-same-namespace
+  namespace: test
+spec:
+  podSelector: {}
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: test
+  egress:
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            name: test
+
+---
+#Allow communication inside namesapce
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-same-namespace
+  namespace: prod
+spec:
+  podSelector: {}
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: prod
+  egress:
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            name: prod
+
+

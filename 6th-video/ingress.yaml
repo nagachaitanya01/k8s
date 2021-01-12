@@ -1,0 +1,51 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: deploy1-ingress
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: www.bncdivya.xyz
+    http:
+      paths:
+        - path: /
+          backend:
+            serviceName: deploy1
+            servicePort: 8000
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: deploy2-ingress
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: app1.bncdivya.xyz
+    http:
+      paths:
+        - path: /
+          backend:
+            serviceName: deploy2
+            servicePort: 8500
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: deploy3-ingress
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: app2.bncdivya.xyz
+    http:
+      paths:
+        - path: /
+          backend:
+            serviceName: deploy3
+            servicePort: 9000			
+			
+			

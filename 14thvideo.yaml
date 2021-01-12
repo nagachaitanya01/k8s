@@ -1,0 +1,229 @@
+############USING NODENAME###############
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: deploy01
+  name: deploy01
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deploy01
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: deploy01
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+      nodeName: ip-172-20-35-226.ec2.internal
+---
+########USING NODE SELECTOR#########
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: deploy01
+  name: nodeselector-deploy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deploy01
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: deploy01
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+      nodeSelector:
+        env: testing #MASTER lo deployment if we gave prob NODE lo
+---
+#############using NODESELECTOR for NODES######     
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: nodeselector-pod
+  name: nodeselector-pod
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nodeselector-pod
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: nodeselector-pod
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+      nodeSelector:
+        env: prod
+#here we can get pods by this cmd---kubectl get pods -l app=nodeselector-pod
+---
+#---------------TAINTS--------------
+##for MASTER
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: taint-env-testing
+  name: taint-env-testing
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: taint-env-testing
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: taint-env-testing
+    spec:
+      containers:
+      - image: nginx
+        name: taint-testing
+      tolerations:
+       - key: "env"
+         operator: "Equal"
+         value: "testing"
+         effect: "NoSchedule"
+---
+##TAINT for NODES
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: taint-env-prod
+  name: taint-env-prod
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: taint-env-prod
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: taint-env-prod
+    spec:
+      containers:
+      - image: nginx
+        name: taint-prod
+      tolerations:
+       - key: "env"
+         operator: "Equal"
+         value: "prod"
+         effect: "NoSchedule"
+---
+#========for testing NOEXECUTE================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: taint-env-prod
+  name: taint-env-prod
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: taint-env-prod
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: taint-env-prod
+    spec:
+      containers:
+      - image: nginx
+        name: taint-prod
+      tolerations:
+       - key: "env"
+         operator: "Equal"
+         value: "dev"
+         effect: "NoExecute"
+---
+#==========NODE-AFFINITY========
+#this will deploy pods only in which are having labels IO1 , GP2
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    run: ebs-high
+  name: ebs-high
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      run: ebs-high
+  template:
+    metadata:
+      labels:
+        run: ebs-high
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: "EBS"
+                operator: In
+                values:
+                   - IO1
+                   - GP2
+                 # - SC1
+      containers:
+      - image: nginx
+        name: ebs-high-nginx
+--- 
+#this will deploy pods only in which are having labels SC1 , ST1 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    run: ebs-low
+  name: ebs-low
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      run: ebs-low
+  template:
+    metadata:
+      labels:
+        run: ebs-low
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: "EBS"
+                operator: In
+                values:
+                   - SC1
+                   - ST1
+      containers:
+      - image: nginx
+        name: ebs-low-nginx      
